@@ -1,0 +1,21 @@
+# Python dependencies for MicroReview
+
+# Core framework for LLM-powered micro-agents
+dspy-ai>=2.4.0
+
+# YAML configuration file parsing
+pyyaml>=6.0
+
+# Optional: GitHub API integration (for production deployment)
+PyGithub>=1.59.0
+
+# Optional: Web framework for webhook handling (for production deployment)
+flask>=2.3.0
+
+# Optional: Additional LLM providers
+openai>=1.0.0
+anthropic>=0.7.0
+
+# Development and testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0

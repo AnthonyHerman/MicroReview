@@ -1,0 +1,42 @@
+# MicroReview Configuration Example
+#
+# This file controls MicroReview's behavior for your repository.
+# Place this file in your repository root as '.microreview.yml'
+
+# List of agents/modules to run on PRs
+# Each agent analyzes code for specific policies (NLCPs)
+enabled_agents:
+  - HardCodedCredsAgent      # Detects hard-coded credentials
+  # - PiiExposureAgent       # Detects PII/PHI exposure (not implemented yet)
+  # - GitHubActionsAgent     # Reviews GitHub Actions workflow security (not implemented yet)
+  # - DuplicationAgent       # Detects code duplication (not implemented yet)
+  # - DocsCompletenessAgent  # Checks documentation completeness (not implemented yet)
+
+# Only include findings above this confidence threshold (0.0 to 1.0)
+confidence_threshold: 0.8
+
+# How to group results in the PR comment
+# Options: "file", "category", "none"
+group_by: "category"
+
+# Maximum findings to report per agent (to avoid overwhelming PRs)
+max_findings_per_agent: 10
+
+# Paths or glob patterns to exclude from analysis
+exclude_paths:
+  - "tests/"
+  - "docs/"
+  - "*.md"
+  - "node_modules/"
+  - "__pycache__/"
+
+# Comment behavior
+# "update": Update a single comment (recommended)
+# "append": Post new comment each time
+comment_mode: "update"
+
+# Optional: Custom thresholds per agent
+agent_config:
+  HardCodedCredsAgent:
+    confidence_threshold: 0.7  # Lower threshold for credential detection
+    max_findings: 5
