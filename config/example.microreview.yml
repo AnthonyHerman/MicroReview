@@ -1,0 +1,55 @@
+# MicroReview Configuration Example
+#
+# This file controls MicroReview's behavior for your repository.
+# Place this file in your repository root as '.microreview.yml'
+#
+# Following the README specifications for proper NLCP-based micro-agents
+
+# List of agents/modules to run on PRs (README: Example Micro-Agents)
+# Each agent analyzes code for specific Natural Language Code Policies (NLCPs)
+enabled_agents:
+  - HardCodedCredsAgent      # Detects hard-coded credentials using NLCP
+  # - PiiExposureAgent       # Detects PII/PHI exposure (example from README)
+  # - GitHubActionsSecurityAgent  # Reviews GitHub Actions workflow security
+  # - DuplicationAgent       # Warns of code copied from elsewhere (README example)
+  # - DocsCompletenessAgent  # Checks for missing documentation (README example)
+
+# Only include findings above this confidence threshold (0.0 to 1.0)
+# README specifies this enables "explainable and filterable" results
+confidence_threshold: 0.8
+
+# How to group results in the PR comment (README: Configuration Options)
+# Options: "file", "category", "none" 
+group_by: "category"
+
+# Maximum findings to report per agent (README: reduce noise)
+# Prevents overwhelming PRs with too many comments
+max_findings_per_agent: 10
+
+# Paths or glob patterns to exclude from analysis
+# README emphasizes "language-agnostic" but allows exclusions
+exclude_paths:
+  - "tests/"
+  - "docs/"
+  - "*.md"
+  - "node_modules/"
+  - "__pycache__/"
+  - ".git/"
+
+# Comment behavior (README: Single Synthesized PR Comment)
+# "update": Update a single comment (prevents bot noise - README requirement)
+# "append": Post new comment each time
+comment_mode: "update"
+
+# Optional: Custom configuration per agent (README: Extensible)
+# Allows fine-tuning individual agents for your organization's needs
+agent_config:
+  HardCodedCredsAgent:
+    confidence_threshold: 0.8  # Standard threshold for credential detection
+    max_findings: 10            # Limit credential findings to avoid noise
+  PiiExposureAgent:
+    confidence_threshold: 0.7  # Slightly lower for privacy detection
+    max_findings: 8
+  GitHubActionsSecurityAgent:
+    confidence_threshold: 0.8  # High confidence for security issues
+    max_findings: 10

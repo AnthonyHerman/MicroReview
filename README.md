@@ -104,9 +104,9 @@ class HardCodedCredsAgent(dspy.Module):
 Configure your LLM provider (OpenAI, Anthropic, etc.) in one place:
 ```python
 import dspy
-dspy.settings.configure(llm=dspy.Anthropic(model="claude-3-sonnet-20240229"))
+dspy.configure(lm=dspy.LM("anthropic/claude-3-sonnet-20240229"))
 # or
-dspy.settings.configure(llm=dspy.OpenAI(model="gpt-4o"))
+dspy.configure(lm=dspy.LM("openai/gpt-4o"))
 ```
 
 ---
@@ -114,7 +114,7 @@ dspy.settings.configure(llm=dspy.OpenAI(model="gpt-4o"))
 ## 🚀 Getting Started
 
 1. **Clone this repo**
-2. **Install requirements:** `pip install dspy`
+2. **Install requirements:** `uv sync`
 3. **Configure your LLM API key and provider**
 4. **Run the main review pipeline on your PR diff**
 5. **Add/modify agents as needed by editing the `agents/` directory**

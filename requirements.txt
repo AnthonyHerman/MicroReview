@@ -1,0 +1,24 @@
+# Legacy requirements.txt (for backward compatibility)
+# Modern installation: Use `uv sync` with pyproject.toml instead
+
+# Core framework for LLM-powered micro-agents (README requirement)
+dspy-ai>=2.4.0
+
+# YAML configuration file parsing (.microreview.yml files)
+pyyaml>=6.0
+
+# GitHub API integration (for production GitHub App deployment)
+PyGithub>=1.59.0
+
+# Web framework for webhook handling (for GitHub App)
+flask>=2.3.0
+
+# LLM providers (README: Multi-Provider Support)
+openai>=1.0.0      # For OpenAI GPT models (README example: gpt-4o)
+anthropic>=0.7.0   # For Anthropic Claude models (README example: claude-3-sonnet)
+
+# Development and testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=23.0.0      # Code formatting
+flake8>=6.0.0      # Linting
