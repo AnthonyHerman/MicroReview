@@ -102,7 +102,12 @@ class ConfigLoader:
     def _get_default_config(self) -> MicroReviewConfig:
         """Get default configuration with basic settings."""
         return MicroReviewConfig(
-            enabled_agents=["HardCodedCredsAgent"],
+            enabled_agents=[
+                "HardCodedCredsAgent",
+                # New specialized agents (following best practices - opt-in)
+                # "PiiExposureAgent",  # Uncomment to enable PII detection
+                # "GitHubActionsSecurityAgent",  # Uncomment to enable GitHub Actions security
+            ],
             confidence_threshold=0.8,
             group_by="category",
             max_findings_per_agent=10,
@@ -113,7 +118,11 @@ class ConfigLoader:
     def save_example_config(self, output_path: str = ".microreview.yml"):
         """Save an example configuration file."""
         example_config = {
-            'enabled_agents': ['HardCodedCredsAgent'],
+            'enabled_agents': [
+                'HardCodedCredsAgent',
+                # 'PiiExposureAgent',  # Uncomment to enable PII/PHI detection
+                # 'GitHubActionsSecurityAgent',  # Uncomment to enable GitHub Actions security
+            ],
             'confidence_threshold': 0.8,
             'group_by': 'category',
             'max_findings_per_agent': 10,
@@ -121,8 +130,16 @@ class ConfigLoader:
             'comment_mode': 'update',
             'agent_config': {
                 'HardCodedCredsAgent': {
-                    'confidence_threshold': 0.9,
+                    'confidence_threshold': 0.8,
                     'max_findings': 5
+                },
+                'PiiExposureAgent': {
+                    'confidence_threshold': 0.7,
+                    'max_findings': 8
+                },
+                'GitHubActionsSecurityAgent': {
+                    'confidence_threshold': 0.8,
+                    'max_findings': 10
                 }
             }
         }

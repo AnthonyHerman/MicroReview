@@ -36,6 +36,11 @@ class ResultSynthesizer:
         """
         Synthesize all findings into a formatted PR review comment.
         
+        Implements best practices from AI agent development:
+        1. Intelligent filtering to reduce noise
+        2. Clear, explainable reasoning
+        3. Prioritized, actionable output
+        
         Args:
             findings: List of findings from all agents
             
@@ -45,18 +50,25 @@ class ResultSynthesizer:
         if not findings:
             return self._generate_no_issues_comment()
         
-        # Deduplicate findings
-        deduplicated_findings = self._deduplicate_findings(findings)
+        # Apply intelligent filtering to reduce noise (Blog lesson #2)
+        filtered_findings = self._intelligent_filter_findings(findings)
+        
+        # Deduplicate findings (existing logic)
+        deduplicated_findings = self._deduplicate_findings(filtered_findings)
         
         # Group findings according to configuration
         grouped_findings = self._group_findings(deduplicated_findings)
         
-        # Generate the comment
+        # Generate the comment with improved formatting
         return self._format_review_comment(grouped_findings, len(findings), len(deduplicated_findings))
     
     def _deduplicate_findings(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Remove duplicate findings based on content similarity.
+        Remove true duplicate findings based on exact content and location.
+        
+        This method is conservative and only removes findings that are actually
+        identical (same file, same line, same issue). Different security issues
+        at different locations are NOT considered duplicates.
         
         Args:
             findings: List of findings to deduplicate
@@ -68,8 +80,15 @@ class ResultSynthesizer:
         unique_findings = []
         
         for finding in findings:
-            # Create a hash based on finding content and location
-            content = f"{finding.get('finding', '')}{finding.get('file_path', '')}{finding.get('line_number', '')}"
+            # Create a hash based on exact location and content
+            # Include more specific details to avoid false positive deduplication
+            file_path = finding.get('file_path', '')
+            line_number = str(finding.get('line_number', ''))
+            finding_text = finding.get('finding', '')
+            reasoning = finding.get('reasoning', '')
+            
+            # Only consider it a duplicate if it's the exact same issue at the exact same location
+            content = f"{file_path}|{line_number}|{finding_text}|{reasoning[:100]}"
             finding_hash = hashlib.md5(content.encode()).hexdigest()
             
             if finding_hash not in seen_hashes:
@@ -186,13 +205,14 @@ class ResultSynthesizer:
         return summary
     
     def _get_category_emoji(self, category: str) -> str:
-        """Get emoji for category."""
+        """Get emoji for category following README sample output."""
         emoji_map = {
-            'Security': '🔒',
-            'Documentation': '📄',
+            'Security': '🔒',      # README example: "🔒 Security"
+            'Privacy': '🛡️',       # For PII/PHI findings
+            'Documentation': '📄', # README example: "📄 Documentation"  
             'Performance': '⚡',
             'Style': '🎨',
-            'Duplication': '🌀',
+            'Duplication': '🌀',   # README example: "🌀 Duplication"
             'General': '📋',
             'Quality': '✨'
         }
@@ -251,7 +271,106 @@ All enabled micro-agents have reviewed the changes and found no policy violation
 _This is an automated review by MicroReview._
 
 *To learn more about MicroReview or suggest new policies, visit our docs.*"""
-
+    
+    def _intelligent_filter_findings(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Intelligently filter findings to reduce noise (Blog lesson #2).
+        
+        This implements the "fewer, smarter tools" principle by:
+        1. Prioritizing high-confidence, high-severity findings
+        2. Grouping similar findings
+        3. Filtering out low-value findings in test contexts
+        """
+        if not findings:
+            return findings
+        
+        # Step 1: Filter out obvious false positives
+        filtered_findings = []
+        for finding in findings:
+            # Skip very low confidence findings
+            if finding.get('confidence', 0) < 0.3:
+                continue
+            
+            # Skip test-related findings with low confidence
+            file_path = finding.get('file_path', '')
+            if any(test_path in file_path.lower() for test_path in ['test', 'spec', '__test__', '.test.']):
+                if finding.get('confidence', 0) < 0.7:
+                    continue
+            
+            # Skip documentation-only findings for security issues
+            if (finding.get('category') == 'security' and 
+                finding.get('severity') != 'low' and 
+                any(doc_path in file_path.lower() for doc_path in ['readme', 'doc', '.md'])):
+                continue
+            
+            filtered_findings.append(finding)
+        
+        # Step 2: Group and deduplicate similar findings
+        grouped_findings = self._group_similar_findings(filtered_findings)
+        
+        # Step 3: Prioritize findings by impact
+        prioritized_findings = self._prioritize_findings(grouped_findings)
+        
+        return prioritized_findings
+    
+    def _group_similar_findings(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Group truly similar findings to reduce noise.
+        
+        This is conservative - only groups findings that are actually duplicates,
+        not just the same type of issue. For security findings like hard-coded
+        credentials, each instance on a different line should be reported separately.
+        """
+        # Group by exact file + line + finding content
+        # This ensures we only group true duplicates, not just similar issue types
+        groups = defaultdict(list)
+        
+        for finding in findings:
+            # Create a unique key for true duplicates only
+            file_path = finding.get('file_path', '')
+            line_number = finding.get('line_number', '')
+            finding_text = finding.get('finding', '')
+            
+            # Only group if it's exactly the same finding at the same location
+            key = f"{file_path}:{line_number}:{finding_text}"
+            groups[key].append(finding)
+        
+        # For each group, keep the highest confidence finding
+        deduplicated = []
+        for group_key, group_findings in groups.items():
+            if len(group_findings) == 1:
+                deduplicated.append(group_findings[0])
+            else:
+                # Multiple agents found the same issue at the same location
+                # Keep the highest confidence one and note the agreement
+                sorted_findings = sorted(group_findings, key=lambda x: x.get('confidence', 0), reverse=True)
+                best_finding = sorted_findings[0].copy()
+                
+                if len(group_findings) > 1:
+                    agents = [f.get('agent', 'Unknown') for f in group_findings]
+                    unique_agents = list(set(agents))
+                    if len(unique_agents) > 1:
+                        best_finding['reasoning'] += f" (Confirmed by {len(unique_agents)} agents: {', '.join(unique_agents)})"
+                
+                deduplicated.append(best_finding)
+        
+        return deduplicated
+    
+    def _prioritize_findings(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Prioritize findings by severity and confidence."""
+        # Define priority scores
+        severity_scores = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1}
+        
+        def priority_score(finding):
+            severity = finding.get('severity', 'medium')
+            confidence = finding.get('confidence', 0.5)
+            severity_weight = severity_scores.get(severity, 2)
+            
+            # Combined score: severity * confidence
+            return severity_weight * confidence
+        
+        # Sort by priority score (highest first)
+        return sorted(findings, key=priority_score, reverse=True)
 
 # Example usage
 if __name__ == "__main__":

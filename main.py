@@ -6,6 +6,11 @@ This is the main entry point for PR review processing in MicroReview.
 It orchestrates the execution of micro-agents on PR diffs and synthesizes
 the results into a single review comment.
 
+Following the README requirements:
+- DSPy configuration for LLM providers
+- Micro-agent orchestration
+- Single synthesized PR comment
+
 Usage:
     python main.py --pr-diff <diff_file> --config <config_file>
 """
@@ -17,6 +22,7 @@ from typing import Dict, Any
 
 from core.orchestrator import AgentOrchestrator
 from core.synthesizer import ResultSynthesizer
+from core.dspy_config import setup_dspy_for_microreview
 from config.loader import ConfigLoader
 
 
@@ -44,14 +50,23 @@ def main():
     args = parser.parse_args()
     
     try:
-        # Load configuration
+        # Step 1: Configure DSPy as shown in README
+        print("🔧 Configuring DSPy for LLM providers...")
+        dspy_configured = setup_dspy_for_microreview()
+        
+        if dspy_configured:
+            print("✅ DSPy configured successfully - using LLM-based analysis")
+        else:
+            print("⚠️  DSPy not configured - using fallback pattern-based analysis")
+        
+        # Step 2: Load configuration
         config_loader = ConfigLoader()
         config = config_loader.load_config(args.config)
         
-        # Initialize orchestrator
+        # Step 3: Initialize orchestrator
         orchestrator = AgentOrchestrator(config)
         
-        # Read PR diff
+        # Step 4: Read PR diff
         if args.pr_diff:
             if Path(args.pr_diff).exists():
                 with open(args.pr_diff, 'r') as f:
@@ -62,24 +77,25 @@ def main():
             print("Error: --pr-diff is required", file=sys.stderr)
             return 1
         
-        # Run analysis
-        print("Running MicroReview analysis...")
+        # Step 5: Run analysis (following README architecture)
+        print("🔍 Running MicroReview micro-agent analysis...")
         findings = orchestrator.run_analysis(pr_diff, args.repo_path)
         
-        # Synthesize results
+        # Step 6: Synthesize results into single PR comment
+        print("📝 Synthesizing findings into PR review comment...")
         synthesizer = ResultSynthesizer(config)
         review_comment = synthesizer.synthesize_findings(findings)
         
-        # Output results
+        # Step 7: Output results
         print("\n" + "="*50)
-        print("MicroReview Analysis Complete")
+        print("🤖 MicroReview Analysis Complete")
         print("="*50)
         print(review_comment)
         
         return 0
         
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"❌ Error: {e}", file=sys.stderr)
         return 1
 
 
